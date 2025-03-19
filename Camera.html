@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS Style Camera</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <style>
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end; 
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        
+        .button-container {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 2; 
+        }
+
+        
+        button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        
+        #captureButton {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: 3px solid white; 
+            position: relative;
+            transition: background-color 0.3s ease; 
+        }
+
+        
+        #captureButton::before {
+            content: '';
+            position: absolute;
+            width: 70px; 
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid transparent; 
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        
+        #captureButton::after {
+            content: '';
+            position: absolute;
+            width: 60px; 
+            height: 60px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: 1.5px solid white; 
+            box-sizing: border-box;
+        }
+
+        
+        #flipButton {
+            color: white;
+            font-size: 24px; 
+        }
+
+        
+        #switchCameraButton {
+            color: white;
+            font-size: 24px; 
+        }
+
+        
+        #recordingTime {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 18px;
+            display: none; 
+            z-index: 3;
+        }
+
+        
+        #canvas {
+            display: none;
+        }
+
+        .ri-flip-horizontal-line ,
+         .bi {
+            font-size : 35px;
+        }
+    </style>
+</head>
+<body>
+    <video id="video" autoplay></video>
+
+    <div id="recordingTime">00:00</div>
+
+    <div class="button-container">
+
+        <button id="flipButton"><i class="ri-flip-horizontal-line"></i></button>
+        <button id="captureButton"></button>
+
+        <button id="switchCameraButton"><i class="bi bi-arrow-repeat"></i></button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const flipButton = document.getElementById('flipButton');
+        const captureButton = document.getElementById('captureButton');
+        const switchCameraButton = document.getElementById('switchCameraButton');
+        const canvas = document.getElementById('canvas');
+        const recordingTime = document.getElementById('recordingTime');
+
+        let isFlipped = false;
+        let currentFacingMode = 'user'; 
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+        let pressTimer;
+        let startTime;
+
+        function startCamera(facingMode) {
+            const constraints = {
+                video: { facingMode: facingMode }
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    video.srcObject = stream;
+
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            recordedChunks.push(event.data);
+                        }
+                    };
+                    mediaRecorder.onstop = saveVideo;
+                })
+                .catch(err => {
+                    console.error("Error accessing the camera: ", err);
+                });
+        }
+
+        startCamera(currentFacingMode);
+
+        switchCameraButton.addEventListener('click', () => {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            startCamera(currentFacingMode);
+        });
+
+        flipButton.addEventListener('click', () => {
+            isFlipped = !isFlipped;
+            video.style.transform = isFlipped ? 'scaleX(-1)' : 'scaleX(1)';
+
+            const flipIcon = flipButton.querySelector('i');
+            if (isFlipped) {
+                flipIcon.className = 'ri-flip-horizontal-fill'; 
+            } else {
+                flipIcon.className = 'ri-flip-horizontal-line'; 
+            }
+        });
+
+        captureButton.addEventListener('mousedown', () => {
+            pressTimer = setTimeout(() => {
+                if (!isRecording) {
+                    startRecording();
+                }
+            }, 500); 
+        });
+
+        captureButton.addEventListener('mouseup', () => {
+            clearTimeout(pressTimer);
+            if (isRecording) {
+                stopRecording();
+            } else {
+                takePhoto();
+            }
+        });
+
+        captureButton.addEventListener('touchstart', () => {
+            pressTimer = setTimeout(() => {
+                if (!isRecording) {
+                    startRecording();
+                }
+            }, 500); 
+        });
+
+        captureButton.addEventListener('touchend', () => {
+            clearTimeout(pressTimer);
+            if (isRecording) {
+                stopRecording();
+            } else {
+                takePhoto();
+            }
+        });
+
+        function startRecording() {
+            recordedChunks = []; 
+            mediaRecorder.start();
+            isRecording = true;
+            recordingTime.style.display = 'block'; 
+            startTime = Date.now();
+            updateRecordingTime();
+            captureButton.style.backgroundColor = '#ed3535'; 
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordingTime.style.display = 'none'; 
+            captureButton.style.backgroundColor = 'transparent'; 
+        }
+
+        function updateRecordingTime() {
+            if (isRecording) {
+                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+                const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+                recordingTime.textContent = `${minutes}:${seconds}`;
+                requestAnimationFrame(updateRecordingTime);
+            }
+        }
+
+        function takePhoto() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            if (isFlipped) {
+                context.translate(canvas.width, 0);
+                context.scale(-1, 1);
+            }
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageDataUrl = canvas.toDataURL('image/png');
+
+            const link = document.createElement('a');
+            link.href = imageDataUrl;
+            link.download = 'kopasterphoto.png';
+            link.click();
+        }
+
+        function saveVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'kopastervideo.mp4';
+            link.click();
+        }
+    </script>
+</body>
+</html>

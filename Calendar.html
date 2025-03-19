@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar</title>
+    <style>
+        body {
+            font-family: comic sans ms;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #5bfa8b;
+        }
+        
+        .calendar {
+            width: 80%;
+            max-width: 700px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .calendar header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            color: #FFF;
+            background-color: #2ecd1f;
+        }
+
+        .calendardays,
+        .calendardates {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 10px;
+        }
+
+        .calendarday,
+        .calendardate {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50px;
+            border: 1px solid blueviolet;
+        }
+
+        .calendardate {
+            cursor: pointer;
+        }
+
+        .calendardate:hover {
+            background-color: #007bff;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modalcontent {
+            background-color: wheat;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        form label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        form input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #0056b3;
+        }
+
+        #nextmonth ,
+        #prevmonth {
+            font-size : 25px;
+            cursor: pointer;
+        }
+
+        form {
+            font-family: tajawal;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar">
+        <header>
+            <button id="prevmonth" style="border-radius : 50%; height : 50px; width : 50px; background-color: #fff; border : none;">⬅</button>
+            <h2 id="currentmonthyear"></h2>
+            <button id="nextmonth" style="border-radius : 50%; height : 50px; width : 50px; background-color: #fff; border : none;">➡</button>
+
+        </header>
+        <div class="calendardays">
+            <div class="calendarday">Sun</div>
+            <div class="calendarday">Mon</div>
+            <div class="calendarday">Tue</div>
+            <div class="calendarday">Wed</div>
+            <div class="calendarday">Thu</div>
+            <div class="calendarday">Fri</div>
+            <div class="calendarday">Sat</div>
+        </div>
+        <div class="calendardates" id="calendardates"></div>
+    </div>
+    <div class="modal" id="eventmodal">
+        <div class="modalcontent">
+            <span class="close">&times;</span>
+            <h2 style="font-family: tajawal;">Add Event</h2>
+            <form id="eventform">
+                <label for="eventtitle" >Title</label>
+                <input type="text" name="eventtitle" id="eventtitle" required />
+                <label for="eventdate">Date</label>
+                <input type="date" name="eventdate" id="eventdate" required />
+                <label for="eventtime">Time</label>
+                <input type="time" name="eventtime" id="eventtime" required />
+                <button type="submit">Add Event</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const calendardates = document.getElementById("calendardates");
+            const eventmodal = document.getElementById("eventmodal");
+            const closemodal = document.querySelector(".close");
+            const eventform = document.getElementById("eventform");
+            const currentmonthyear = document.getElementById("currentmonthyear");
+            const prevmonthbtn = document.getElementById("prevmonth");
+            const nextmonthbtn = document.getElementById("nextmonth");
+            let currentdate = new Date();
+
+            function rendercalendar(date) {
+                calendardates.innerHTML = "";
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                currentmonthyear.innerHTML = `${date.toLocaleString("default", {
+                    month: "long",
+                })} ${year}`;
+                const firstday = new Date(year, month, 1).getDay();
+                const daysinmonth = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstday; i++) {
+                    const emptycell = document.createElement("div");
+                    calendardates.appendChild(emptycell);
+                }
+
+                for (let i = 1; i <= daysinmonth; i++) {
+                    const datecell = document.createElement("div");
+                    datecell.classList.add("calendardate");
+                    datecell.innerText = i;
+                    datecell.dataset.date = new Date(year, month, i).toISOString();
+                    calendardates.appendChild(datecell);
+                }
+            }
+
+            function openmodal() {
+                eventmodal.style.display = "block";
+            }
+
+            function closemodalfun() {
+                eventmodal.style.display = "none";
+            }
+
+            calendardates.addEventListener("click", (e) => {
+                if (e.target.classList.contains("calendardate")) {
+                    const selecteddate = new Date(e.target.dataset.date);
+                    document.getElementById("eventdate").valueAsDate = selecteddate;
+                    openmodal();
+                }
+            });
+
+            closemodal.addEventListener("click", closemodalfun);
+            window.addEventListener("click", (e) => {
+                if (e.target == eventmodal) {
+                    closemodalfun();
+                }
+            });
+
+            eventform.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const title = e.target["eventtitle"].value;
+                const date = e.target["eventdate"].value;
+                const time = e.target["eventtime"].value;
+                console.log(`Event: ${title} on ${date} at ${time}`);
+                closemodalfun();
+            });
+
+            prevmonthbtn.addEventListener("click", () => {
+                currentdate.setMonth(currentdate.getMonth() - 1);
+                rendercalendar(currentdate);
+            });
+
+            nextmonthbtn.addEventListener("click", () => {
+                currentdate.setMonth(currentdate.getMonth() + 1);
+                rendercalendar(currentdate);
+            });
+
+            rendercalendar(currentdate);
+        });
+    </script>
+</body>
+</html>

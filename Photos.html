@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kopaster 8 - Photos</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="https://cdn.glitch.global/c595faff-798c-449a-b5df-68c10510e96a/Kopaster__1_-removebg-preview.png?v=1739537176238">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" integrity="sha512-9xKTRVabjVeZmc+GUW8GgSmcREDunMM+Dt/GrzchfN8tkwHizc5RP4Ok/MXFFy5rIjJjzhndFScTceq5e6GvVQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26vBsMLFYH4kQ67/bbV8XaCQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            background-color: #ff0051;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        }
+
+        .title {
+            color: #fff;
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        .upload {
+            margin-bottom: 20px;
+        }
+
+        .preview {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        a {
+            color : #fff;
+            font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+            font-weight: bold;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <center>
+        <span class="title">Show a photo</span>
+        <br>
+        <input type="file" id="upload" class="upload" accept="image/*, video/*" />
+        <div id="previewContainer">
+        </div>
+        <a href="morephotos.html">More Photos?</a>
+    </center>
+
+    <script>
+        const uploadInput = document.getElementById('upload');
+        const previewContainer = document.getElementById('previewContainer');
+
+        uploadInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                const validImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+
+                if (validImageTypes.includes(file.type) || validVideoTypes.includes(file.type)) {
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        if (validImageTypes.includes(file.type)) {
+                            previewContainer.innerHTML = `<img src="${e.target.result}" alt="Uploaded Image" class="preview">`;
+                        } else if (validVideoTypes.includes(file.type)) {
+                            previewContainer.innerHTML = `<video controls src="${e.target.result}" class="preview"></video>`;
+                        }
+                    };
+
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please upload a valid image or video file.');
+                    uploadInput.value = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Paint App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            cursor: crosshair;
+        }
+
+        .tools {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            max-height: 90vh; 
+            overflow-y: auto; 
+        }
+
+        .tools button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+
+        .tools button:hover {
+            background-color: #0056b3;
+        }
+
+        .tools input[type="color"] {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        .tools input[type="range"] {
+            width: 100%;
+        }
+
+        .tools select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .ruler {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.1);
+            display: none;
+            font-size: 12px;
+            color: #000;
+            text-align: center;
+            line-height: 20px;
+        }
+
+        .ruler.visible {
+            display: block;
+        }
+
+        .crop-overlay {
+            position: absolute;
+            border: 2px dashed #007bff;
+            background-color: rgba(0, 123, 255, 0.1);
+            display: none;
+        }
+
+        
+        @media (max-width: 768px) {
+            .tools {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 10px;
+                max-height: 150px; 
+                overflow-x: hidden; 
+            }
+
+            .tools button {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+
+            .tools input[type="color"] {
+                width: 40px;
+                height: 40px;
+            }
+
+            .tools input[type="range"] {
+                width: 80px;
+            }
+
+            .tools select {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+        #clear {
+            background-color: aqua;
+            color : #000;
+        }
+        #fill {
+            background-color:blueviolet;
+            color : #fff;
+        }
+        #download {
+            background-color: #ff0;
+            color : #000;
+        }
+        #eraser {
+            background-color: rgb(137, 231, 100);
+            color : #000;
+        }
+        #smudge {
+            background-color: rgb(255, 0, 0);
+            color : #fff;
+        }
+        #toggleRuler {
+            background-color: rgb(255, 0, 208);
+            color : #fff;
+        }
+        #crop {
+            background-color: rgb(84, 38, 9);
+            color : #fff;
+        }
+        #colorPicker {
+            border : 1px solid #ff0;
+            outline : 1px solid #ff0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            background: #ffff00;
+            color: #ff0;
+          }
+          #uploadImage {
+            background-color: #0056b3;
+            border-radius: 5px;
+            color : #fff;
+            cursor: pointer;
+          }
+        </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+    <div class="tools">
+        <button id="clear">Clear (C)</button>
+        <button id="fill">Fill (F)</button>
+        <button id="download">Download</button>
+        <button id="eraser">Eraser (E)</button>
+        <button id="smudge">Random Color (S)</button>
+        <button id="toggleRuler">Toggle Ruler (R)</button>
+        <button id="crop">Crop Image</button>
+        <input type="color" id="colorPicker" value="#000000">
+        <input type="range" id="brushSize" min="1" max="50" value="5">
+        <input type="file" id="uploadImage" accept="image
+    </div>
+    <div class="ruler" id="ruler"></div>
+    <div class="crop-overlay" id="cropOverlay"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const clearButton = document.getElementById('clear');
+        const fillButton = document.getElementById('fill');
+        const downloadButton = document.getElementById('download');
+        const eraserButton = document.getElementById('eraser');
+        const smudgeButton = document.getElementById('smudge');
+        const toggleRulerButton = document.getElementById('toggleRuler');
+        const uploadImage = document.getElementById('uploadImage');
+        const ruler = document.getElementById('ruler');
+        const cropButton = document.getElementById('crop');
+        const resizeButton = document.getElementById('resize');
+        const cropOverlay = document.getElementById('cropOverlay');
+
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let painting = false;
+        let isErasing = false;
+        let isSmudging = false;
+        let isCropping = false;
+        let isResizing = false;
+        let startX, startY, endX, endY;
+        let uploadedImage = null;
+
+        
+        function getMousePos(canvas, e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        
+        function startPosition(e) {
+            if (isCropping || isResizing) return;
+            painting = true;
+            const pos = getMousePos(canvas, e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        
+        function draw(e) {
+            if (!painting) return;
+
+            const pos = getMousePos(canvas, e);
+
+            if (isErasing) {
+                ctx.globalCompositeOperation = 'destination-out'; 
+                ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
+            } else if (isSmudging) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.5)`;
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = colorPicker.value;
+            }
+
+            ctx.lineWidth = brushSize.value;
+            ctx.lineCap = 'round';
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+        }
+
+        
+        function fillCanvas() {
+            ctx.fillStyle = colorPicker.value;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            uploadedImage = null;
+        }
+
+        
+        function downloadCanvas() {
+            const link = document.createElement('a');
+            link.download = 'painting.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        
+        eraserButton.addEventListener('click', () => {
+            isErasing = !isErasing;
+            isSmudging = false;
+            eraserButton.style.backgroundColor = isErasing ? '#0056b3' : '#007bff';
+            smudgeButton.style.backgroundColor = '#007bff';
+        });
+
+        
+        smudgeButton.addEventListener('click', () => {
+            isSmudging = !isSmudging;
+            isErasing = false;
+            smudgeButton.style.backgroundColor = isSmudging ? '#0056b3' : '#007bff';
+            eraserButton.style.backgroundColor = '#007bff';
+        });
+
+        
+        toggleRulerButton.addEventListener('click', () => {
+            ruler.classList.toggle('visible');
+            if (ruler.classList.contains('visible')) {
+                updateRuler();
+            }
+        });
+
+        
+        function updateRuler() {
+            const rulerWidth = canvas.width;
+            const increment = 100; 
+            let numbers = '';
+            for (let i = 0; i <= rulerWidth; i += increment) {
+                numbers += `<span style="position: absolute; left: ${i}px;">${i}</span>`;
+            }
+            ruler.innerHTML = numbers;
+        }
+
+        
+        uploadImage.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        uploadedImage = img;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        
+        cropButton.addEventListener('click', () => {
+            isCropping = true;
+            isResizing = false;
+            cropOverlay.style.display = 'block';
+        });
+
+        
+        canvas.addEventListener('mousedown', (e) => {
+            if (isCropping) {
+                const pos = getMousePos(canvas, e);
+                startX = pos.x;
+                startY = pos.y;
+                cropOverlay.style.left = `${startX}px`;
+                cropOverlay.style.top = `${startY}px`;
+                cropOverlay.style.width = '0';
+                cropOverlay.style.height = '0';
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isCropping && startX !== undefined && startY !== undefined) {
+                const pos = getMousePos(canvas, e);
+                endX = pos.x;
+                endY = pos.y;
+                cropOverlay.style.width = `${endX - startX}px`;
+                cropOverlay.style.height = `${endY - startY}px`;
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (isCropping && startX !== undefined && startY !== undefined && endX !== undefined && endY !== undefined) {
+                const width = endX - startX;
+                const height = endY - startY;
+                const croppedImage = ctx.getImageData(startX, startY, width, height);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.putImageData(croppedImage, 0, 0);
+                isCropping = false;
+                cropOverlay.style.display = 'none';
+            }
+        });
+
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'c' || e.key === 'C') clearCanvas();
+            if (e.key === 'f' || e.key === 'F') fillCanvas();
+            if (e.key === 'e' || e.key === 'E') eraserButton.click();
+            if (e.key === 's' || e.key === 'S') smudgeButton.click();
+            if (e.key === 'r' || e.key === 'R') toggleRulerButton.click();
+        });
+
+        
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', endPosition);
+        canvas.addEventListener('mousemove', draw);
+
+        clearButton.addEventListener('click', clearCanvas);
+        fillButton.addEventListener('click', fillCanvas);
+        downloadButton.addEventListener('click', downloadCanvas);
+    </script>
+
+</body>
+</html>

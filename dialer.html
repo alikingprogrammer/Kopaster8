@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Dialer</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+        margin: 0;
+      }
+      
+      .dialer {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 300px;
+        text-align: center;
+      }
+      
+      .display {
+        font-size: 24px;
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+      
+      .keypad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      
+      .keypad button {
+        font-size: 20px;
+        padding: 15px;
+        border: none;
+        border-radius: 5px;
+        background-color: #e0e0e0;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      
+      .keypad button:hover {
+        background-color: #d0d0d0;
+      }
+      
+      .call-button {
+        margin-top: 20px;
+        padding: 15px;
+        width: 100%;
+        font-size: 18px;
+        border: none;
+        border-radius: 5px;
+        background-color: #4caf50;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      
+      .call-button:hover {
+        background-color: #45a049;
+      }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const display = document.getElementById('display');
+        const callButton = document.getElementById('call-button');
+        const keypadButtons = document.querySelectorAll('.keypad button');
+        
+        let phoneNumber = '';
+        
+        // Add event listeners to keypad buttons
+        keypadButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            phoneNumber += button.getAttribute('data-number');
+            display.textContent = phoneNumber;
+          });
+        });
+        
+        // Add event listener to call button
+        callButton.addEventListener('click', () => {
+          if (phoneNumber) {
+            window.location.href = `tel:${phoneNumber}`; // Corrected link format
+          } else {
+            alert('Please enter a phone number.');
+          }
+        });
+    });
+  </script>
+</head>
+<body>
+  <div class="dialer">
+    <div class="display" id="display">0</div>
+    <div class="keypad">
+      <button data-number="1">1</button>
+      <button data-number="2">2</button>
+      <button data-number="3">3</button>
+      <button data-number="4">4</button>
+      <button data-number="5">5</button>
+      <button data-number="6">6</button>
+      <button data-number="7">7</button>
+      <button data-number="8">8</button>
+      <button data-number="9">9</button>
+      <button data-number="*">*</button>
+      <button data-number="0">0</button>
+      <button data-number="#">#</button>
+    </div>
+    <button class="call-button">
+        <a class="call-button" id="call-button" href="">Call</a>
+    </button>
+  </div>
+</body>
+</html>
